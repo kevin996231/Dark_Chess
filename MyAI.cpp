@@ -540,6 +540,9 @@ double MyAI::Nega_max(const int* board, int* move, const int red_chess_num, cons
 				bool r = rand()%2;
 				if(r) *move = Moves[i];
 			}
+			if(depth == 0){
+                fprintf(stderr, "Move: %d, score: %f m: %f\n", Moves[i], t, m);
+            }
 		}
 		for(int i = move_count; i < move_count + flip_count; i++){ // flip
 			double total = 0;
@@ -561,6 +564,9 @@ double MyAI::Nega_max(const int* board, int* move, const int red_chess_num, cons
 				bool r = rand()%2;
 				if(r) *move = Moves[i];
 			}
+			if(depth == 0){
+                fprintf(stderr, "Move: %d, score: %f m: %f\n", Moves[i], E_score, m);
+            }
 		}
 		return m;
 	}

@@ -1,11 +1,10 @@
 #include "float.h"
 #include "newAI.h"
 
-#define DEPTH_LIMIT 5
+#define DEPTH_LIMIT 7
 using namespace std;
 int count1 = 0;
 int count2 = 0;
-
 
 MyAI::MyAI(void){}
 
@@ -492,6 +491,7 @@ double MyAI::Evaluate(const int* board){
 }
 
 double MyAI::Get_vmax(double score, const int* cover_chess, const int* flip_chess, const int remain_depth){
+	// return 3886;
     int num = remain_depth/2 + 1;
 	// total score
     int order0[7] = {6,5,1,4,3,2,0};
@@ -500,10 +500,10 @@ double MyAI::Get_vmax(double score, const int* cover_chess, const int* flip_ches
 
     if(this->Color)
         for(int i = 0 ; i < 7; i++)
-            chess_count[i] = cover_chess[order1[i]] + flip_chess[order0[i]];
+            chess_count[i] = cover_chess[order1[i]] + flip_chess[order0[i]] + cover_chess[order0[i]];
     else
         for(int i = 0 ; i < 7; i++)
-            chess_count[i] = cover_chess[order0[i]] + flip_chess[order1[i]];
+            chess_count[i] = cover_chess[order0[i]] + flip_chess[order1[i]] + cover_chess[order1[i]];
 	// static const double values[14] = {1,180,6,18,90,270,810,1,180,6,18,90,270,810};
 	static const double values[7] = {810, 270, 180, 90, 18, 6, 1};
 
@@ -522,6 +522,7 @@ double MyAI::Get_vmax(double score, const int* cover_chess, const int* flip_ches
 }
 
 double MyAI::Get_vmin(double score, const int* cover_chess, const int* flip_chess, const int remain_depth){
+	// return 0;
     int num = remain_depth/2 + 1;
 	// total score
     int order0[7] = {6,5,1,4,3,2,0};
@@ -530,10 +531,10 @@ double MyAI::Get_vmin(double score, const int* cover_chess, const int* flip_ches
 
     if(this->Color)
         for(int i = 0 ; i < 7; i++)
-            chess_count[i] = cover_chess[order0[i]] + flip_chess[order1[i]];
+            chess_count[i] = cover_chess[order0[i]] + flip_chess[order1[i]] + cover_chess[order1[i]];
     else
         for(int i = 0 ; i < 7; i++)
-            chess_count[i] = cover_chess[order1[i]] + flip_chess[order0[i]];
+            chess_count[i] = cover_chess[order1[i]] + flip_chess[order0[i]] + cover_chess[order0[i]];
 	// static const double values[14] = {1,180,6,18,90,270,810,1,180,6,18,90,270,810};
 	static const double values[7] = {810, 270, 180, 90, 18, 6, 1};
 
@@ -579,7 +580,7 @@ double MyAI::Get_vmin(double score, const int* cover_chess, const int* flip_ches
 	// return score;
 // }
 double MyAI::Nega_max(double alpha, double beta, const int* board, int* move, const int red_chess_num, const int black_chess_num, const int* cover_chess, const int color, const int depth, const int remain_depth, const int flip_time){
-    if(remain_depth == 0 || flip_time >= 3){ // reach limit of depth
+    if(remain_depth == 0 || flip_time >= 2){ // reach limit of depth
 		this->node++;
 		return Evaluate(board) * (2*((depth&1)^1)-1); // odd: *-1, even: *1
 	}else if(red_chess_num == 0 || black_chess_num == 0){ // terminal node (no chess type)
@@ -641,12 +642,9 @@ double MyAI::Nega_max(double alpha, double beta, const int* board, int* move, co
 			
 			MakeMove(new_board, &new_red, &new_black, new_cover, Moves[i], -1); // -1: NULL
 			t = -Nega_max(-n, -(alpha>m?alpha:m), new_board, &new_move, new_red, new_black, new_cover, color^1, depth+1, remain_depth-1, flip_time);
-            if(depth == 0)
-                fprintf(stderr, "Move: %d, score: %f m: %f\n", Moves[i], t, m);
 
-			
             if(t > m){ 
-                if(n == beta || depth < 3 || t >= beta){
+                if(n == beta /*|| depth < 3*/ || t >= beta){
                     m = t;
 				    *move = Moves[i];
                 } else{
@@ -665,14 +663,14 @@ double MyAI::Nega_max(double alpha, double beta, const int* board, int* move, co
 			// 	if(r) *move = Moves[i];
 			// }
             if(depth == 0){
-                fprintf(stderr, "Move: %d, score: %f m: %f\n", Moves[i], t, m);
+                fprintf(stderr, "Move: %d, score: %f m: %f %d\n", Moves[i], t, m, new_move);
             }
             if(m >= beta){
                 count1 ++;
                 return m;
 
             }
-            n = (alpha>m?alpha:m) + 1;
+            n = (alpha>m?alpha:m) + 0.01;
 
 		}
         double A0,B0, vmin, vmax;
