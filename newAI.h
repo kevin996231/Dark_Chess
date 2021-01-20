@@ -81,6 +81,8 @@ private:
 	// long long int tmp_key;
 
 	std::unordered_map<long long int, hashvalue> table;
+	std::unordered_map<long long int, int> table2;
+
 	int Red_Chess_Num, Black_Chess_Num;
 	int node;
 
@@ -91,12 +93,12 @@ private:
 	// Board
 	void initBoardState();
 	void generateMove(char move[6]);
-	long long int MakeMove(long long int key, int* board, int* red_chess_num, int* black_chess_num, int* cover_chess, const int move, const int chess);
-	long long int MakeMove(long long int key, int* board, int* red_chess_num, int* black_chess_num, int* cover_chess, const char move[6]);
+	long long int MakeMove(long long int key, int* board, int* red_chess_num, int* black_chess_num, int* cover_chess, int* remain_chess, int chess_pos[][5], const int move, const int chess);
+	long long int MakeMove(long long int key, int* board, int* red_chess_num, int* black_chess_num, int* cover_chess, int* remain_chess, int chess_pos[][5], const char move[6]);
 	bool Referee(const int* board, const int Startoint, const int EndPoint, const int color);
-	int Expand(const int* board, const int color, int *Result);
+	int Expand(const int* board, const int color, int *Result, const int chess_pos[][5]);
 	double Evaluate(const int* board);
-	double Nega_max(long long int key, double alpha, double beta, const int* board, int* move, const int red_chess_num, const int black_chess_num, const int* cover_chess, const int color, const int depth, const int remain_depth, const int flip_time);
+	double Nega_max(long long int key, double alpha, double beta, const int* board, int* move, const int red_chess_num, const int black_chess_num, const int* cover_chess, const int* remain_chess, const int chess_pos[][5], const int color, const int depth, const int remain_depth, const int flip_time);
 	double Get_vmax(double score, const int* cover_chess, const int* flip_chess, const int remain_depth);
 	double Get_vmin(double score, const int* cover_chess, const int* flip_chess, const int remain_depth);
 	// Display
