@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <unordered_map>
+
 #include <time.h>
 
 #define RED 0
@@ -12,7 +14,15 @@
 #define CHESS_COVER -1
 #define CHESS_EMPTY -2
 #define COMMAND_NUM 18
-
+class hashvalue
+{
+	public:
+		hashvalue(void);
+		double m;
+		int depth;
+		int exact;
+		int move;
+};
 class MyAI  
 {
 	const char* commands_name[COMMAND_NUM] = {
@@ -65,6 +75,12 @@ private:
 	int Board[32];
 	int CoverChess[14];
 	int RemainChess[14];
+	int ChessPos[14][5];
+	long long int randnum[33][16];
+	// long long int key;
+	// long long int tmp_key;
+
+	std::unordered_map<long long int, hashvalue> table;
 	int Red_Chess_Num, Black_Chess_Num;
 	int node;
 
@@ -75,12 +91,12 @@ private:
 	// Board
 	void initBoardState();
 	void generateMove(char move[6]);
-	void MakeMove(int* board, int* red_chess_num, int* black_chess_num, int* cover_chess, const int move, const int chess);
-	void MakeMove(int* board, int* red_chess_num, int* black_chess_num, int* cover_chess, const char move[6]);
+	long long int MakeMove(long long int key, int* board, int* red_chess_num, int* black_chess_num, int* cover_chess, const int move, const int chess);
+	long long int MakeMove(long long int key, int* board, int* red_chess_num, int* black_chess_num, int* cover_chess, const char move[6]);
 	bool Referee(const int* board, const int Startoint, const int EndPoint, const int color);
 	int Expand(const int* board, const int color, int *Result);
 	double Evaluate(const int* board);
-	double Nega_max(double alpha, double beta, const int* board, int* move, const int red_chess_num, const int black_chess_num, const int* cover_chess, const int color, const int depth, const int remain_depth, const int flip_time);
+	double Nega_max(long long int key, double alpha, double beta, const int* board, int* move, const int red_chess_num, const int black_chess_num, const int* cover_chess, const int color, const int depth, const int remain_depth, const int flip_time);
 	double Get_vmax(double score, const int* cover_chess, const int* flip_chess, const int remain_depth);
 	double Get_vmin(double score, const int* cover_chess, const int* flip_chess, const int remain_depth);
 	// Display

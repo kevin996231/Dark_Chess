@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <string.h>
-#include "MyAI.h"
+#include "newAI.h"
 
 // commands enumerate
 enum COMMANDS{
