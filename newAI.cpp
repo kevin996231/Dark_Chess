@@ -585,12 +585,16 @@ bool MyAI::Referee(const int* chess, const int from_location_no, const int to_lo
 	}
 	return IsCurrent;
 }
-double MyAI::Evaluate(const int* board){
+double MyAI::Evaluate(const int red_chess_num, const int black_chess_num, const int* board, const int* remain_chess, const int chess_pos[][5]){
 	// total score
 	double score = 1943; // 1*5+180*2+6*2+18*2+90*2+270*2+810*1
 	// static material values
 	// cover and empty are both zero
 	static const double values[14] = {1,180,6,18,90,270,810,1,180,6,18,90,270,810};
+	// static const int order[14] = {6,5,1,4,3,2,0,7,9,10,11,8,12,13};
+	static const int order[12] = {6,5,4,3,2,0,7,9,10,11,12,13};
+
+
 	for(int i = 0; i < 32; i++){
 		if(!(board[i] == CHESS_EMPTY || board[i] == CHESS_COVER)){
 			if(board[i] / 7 == this->Color){
@@ -603,6 +607,70 @@ double MyAI::Evaluate(const int* board){
 		}
 	}
 
+	if(score > 1943 ){
+		int bigcount = 0, big[2];
+		int smallcount, small;
+		if(this->Color == 1 && red_chess_num < 5){
+			for(int i=11; i>=6; i--){
+				for(int k=0; k<5; k++){
+					if(chess_pos[i][k] != -1){
+						big[bigcount] = chess_pos[i][k];
+						bigcount++;
+					}
+					if(bigcount >= 2)
+						break;
+				}
+				if(bigcount >= 2)
+					break;
+			}
+
+			for(int i=5; i>=0; i++){
+				for(int k=0; k<5; k++){
+					if(chess_pos[i][k] != -1){
+						small = chess_pos[i][k];
+						smallcount++;
+					}
+					if(smallcount >= 1)
+						break;
+				}
+				if(smallcount >= 1)
+					break;
+			}
+			if(bigcount >= 2 && smallcount >=1){
+				score -= 0.05*( (big[0]-small)/4 + (big[0]-small)%4 + (big[1]-small)/4 + (big[1]-small)%4 );
+			}
+	
+		}else if(this->Color == 0 && black_chess_num < 5){
+			for(int i=0; i<6; i++){
+				for(int k=0; k<5; k++){
+					if(chess_pos[i][k] != -1){
+						big[bigcount] = chess_pos[i][k];
+						bigcount++;
+					}
+					if(bigcount >= 2)
+						break;
+				}
+				if(bigcount >= 2)
+					break;
+			}
+
+			for(int i=7; i<12; i++){
+				for(int k=0; k<5; k++){
+					if(chess_pos[i][k] != -1){
+						small = chess_pos[i][k];
+						smallcount++;
+					}
+					if(smallcount >= 1)
+						break;
+				}
+				if(smallcount >= 1)
+					break;
+			}
+			if(bigcount >= 2 && smallcount >=1){
+				score -= 0.05*( (big[0]-small)/4 + (big[0]-small)%4 + (big[1]-small)/4 + (big[1]-small)%4 );
+			}
+		}
+	}
 	return score;
 }
 
@@ -669,7 +737,7 @@ double MyAI::Get_vmin(double score, const int* cover_chess, const int* flip_ches
 double MyAI::Nega_max(long long int key, double alpha, double beta, const int* board, int* move, const int red_chess_num, const int black_chess_num, const int* cover_chess, const int* remain_chess, const int chess_pos[][5], const int color, const int depth, const int remain_depth, const int flip_time){
     if(remain_depth == 0 || flip_time >= FLIP_LIMIT){ // reach limit of depth
 		this->node++;
-		return Evaluate(board) * (2*((depth&1)^1)-1); // odd: *-1, even: *1
+		return Evaluate(red_chess_num, black_chess_num, board, remain_chess, chess_pos) * (2*((depth&1)^1)-1); // odd: *-1, even: *1
 	}else if(red_chess_num == 0 || black_chess_num == 0){ // terminal node (no chess type)
 		this->node++;
 		if((red_chess_num == 0 && color == 1) || (black_chess_num == 0 && color == 0))
@@ -685,14 +753,10 @@ double MyAI::Nega_max(long long int key, double alpha, double beta, const int* b
 		h = this->table.at(key);
 		if(h.depth >= remain_depth){
 			if(h.exact == 0){
-				if(depth != 0 || this->table2.find(key) == this->table2.end() || this->table2[key] != h.move){
+				if(depth != 0 || this->table2.find(key) == this->table2.end() || this->table2[key] != h.move || Evaluate(red_chess_num, black_chess_num, board, remain_chess, chess_pos) < 1943){
 					*move = h.move;
 					return h.m;
-				}else
-				{
-					fprintf(stderr, "123123\n");
 				}
-				
 			}else if(h.exact == 1){
 				alpha = alpha>h.m?alpha:h.m;
 			}else{
@@ -700,7 +764,7 @@ double MyAI::Nega_max(long long int key, double alpha, double beta, const int* b
 			}
 		}else{
 			if(h.exact == 0){
-				if(depth != 0 || this->table2.find(key) == this->table2.end() || this->table2[key] != h.move){
+				if(depth != 0 || this->table2.find(key) == this->table2.end() || this->table2[key] != h.move || Evaluate(red_chess_num, black_chess_num, board, remain_chess, chess_pos) < 1943){
 					m = h.m;
 					*move = h.move;
 				}
@@ -756,7 +820,7 @@ double MyAI::Nega_max(long long int key, double alpha, double beta, const int* b
 		}
 	}
     if(flip_count == 32){
-        fprintf(stderr, "hahaha %f\n", Evaluate(board));
+        fprintf(stderr, "hahaha %f\n", Evaluate(red_chess_num, black_chess_num, board, remain_chess, chess_pos));
         fprintf(stderr, "hahaha %f\n", 3*3.3);
         *move = 909;
         return 0;
@@ -764,7 +828,7 @@ double MyAI::Nega_max(long long int key, double alpha, double beta, const int* b
 
 	if(move_count + flip_count == 0){ // terminal node (no move type)
 		this->node++;
-		return Evaluate(board) * (2*((depth&1)^1)-1);
+		return Evaluate(red_chess_num, black_chess_num, board,remain_chess, chess_pos) * (2*((depth&1)^1)-1);
 	}else{
         double n = beta, t;
 
@@ -772,7 +836,7 @@ double MyAI::Nega_max(long long int key, double alpha, double beta, const int* b
 		// search deeper
 		long long int tmp_key = key;
 		int prevent_repeat = -1;
-		if(depth == 0 && this->table2.find(key) != this->table2.end() ){
+		if(depth == 0 && this->table2.find(key) != this->table2.end() && Evaluate(red_chess_num, black_chess_num, board, remain_chess, chess_pos) > 1943){
 			prevent_repeat = this->table2[key];
 		}
 
@@ -833,7 +897,7 @@ double MyAI::Nega_max(long long int key, double alpha, double beta, const int* b
 		}
         double A0,B0, vmin, vmax;
         if(flip_count > 0){
-            double score = Evaluate(board);
+            double score = Evaluate(red_chess_num, black_chess_num, board, remain_chess, chess_pos);
             if(depth == 0){
                 fprintf(stderr, "score: %f\n", score);
             }

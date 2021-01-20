@@ -97,7 +97,7 @@ private:
 	long long int MakeMove(long long int key, int* board, int* red_chess_num, int* black_chess_num, int* cover_chess, int* remain_chess, int chess_pos[][5], const char move[6]);
 	bool Referee(const int* board, const int Startoint, const int EndPoint, const int color);
 	int Expand(const int* board, const int color, int *Result, const int chess_pos[][5]);
-	double Evaluate(const int* board);
+	double Evaluate(const int red_chess_num, const int black_chess_num, const int* board, const int* remain_chess, const int chess_pos[][5]);
 	double Nega_max(long long int key, double alpha, double beta, const int* board, int* move, const int red_chess_num, const int black_chess_num, const int* cover_chess, const int* remain_chess, const int chess_pos[][5], const int color, const int depth, const int remain_depth, const int flip_time);
 	double Get_vmax(double score, const int* cover_chess, const int* flip_chess, const int remain_depth);
 	double Get_vmin(double score, const int* cover_chess, const int* flip_chess, const int remain_depth);
