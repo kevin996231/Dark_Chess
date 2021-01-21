@@ -1,6 +1,10 @@
 #include "float.h"
 #include "newAI.h"
 #include <time.h> 
+#include <cmath>
+// #include <cstdlib> 
+
+
 #define DEPTH_LIMIT 5
 #define FLIP_LIMIT 3
 
@@ -220,6 +224,7 @@ void MyAI::initBoardState()
 		}
 	}
 	srand (time(NULL));
+	// for zobrist's hash
 	for(int i=0; i<32; i++)
 		for(int j=0; j<16; j++){
 			this->randnum[i][j] = (((long long int)rand()) << 32) + rand();
@@ -246,16 +251,18 @@ void MyAI::generateMove(char move[6])
 	for(int i=0; i<32; i++)
 		if(this->Board[i] == CHESS_COVER)
 			cover_count++;
+	
+	//calculate hash
 	for(int i=0; i<32; i++)
 		key ^= this->randnum[i][this->Board[i]];
 	key ^= this->randnum[32][0];
 	int depth = DEPTH_LIMIT;
-	// if(cover_count < 20)
-	// 	depth +=1;
-	// if(cover_count < 10)
-	// 	depth +=1;
-	if(cover_count < 5)
+	if(cover_count < 16)
 		depth +=1;
+	if(cover_count < 5)
+		depth += 2;
+	if(cover_count <= 0)
+		depth += 2;
 	double t = Nega_max(key, -DBL_MAX, DBL_MAX, this->Board, &best_move, this->Red_Chess_Num, this->Black_Chess_Num, this->CoverChess, this->RemainChess, this->ChessPos, this->Color, 0, depth, 0);
 	fprintf(stderr, "cut = %d %d %d\n", count1, count2, this->node);
 
@@ -373,7 +380,8 @@ long long int MyAI::MakeMove(long long int key, int* board, int* red_chess_num, 
 
 int MyAI::Expand(const int* board, const int color,int *Result, const int chess_pos[][5])
 {
-	static const int order[7] = {6,5,1,4,3,2,0};
+	// move order by value
+	static const int order[7] = {5,6,1,4,3,2,0};
 
 	int tmp_ResultCount = 0;
 	int eat[2000] = {0}, tmp_Result[2000];
@@ -438,6 +446,7 @@ int MyAI::Expand(const int* board, const int color,int *Result, const int chess_
 		
 	}
 	int ResultCount = 0;
+	// move ordering -- eat first
 	for(int i=0; i<tmp_ResultCount; i++)
 		if(eat[i]){
 			Result[ResultCount] = tmp_Result[i];
@@ -590,11 +599,18 @@ double MyAI::Evaluate(const int red_chess_num, const int black_chess_num, const 
 	double score = 1943; // 1*5+180*2+6*2+18*2+90*2+270*2+810*1
 	// static material values
 	// cover and empty are both zero
-	static const double values[14] = {1,180,6,18,90,270,810,1,180,6,18,90,270,810};
+	static double values[14] = {1,180,6,18,90,270,810,1,180,6,18,90,270,810};
 	// static const int order[14] = {6,5,1,4,3,2,0,7,9,10,11,8,12,13};
-	static const int order[12] = {6,5,4,3,2,0,7,9,10,11,12,13};
-
-
+	static int order[12] = {6,5,4,3,2,0,7,9,10,11,12,13};
+	// value for pawn
+	if(remain_chess[0] == 1 && remain_chess[13])
+		values[0] = 300;
+	else
+		values[0] = 1;
+	if(remain_chess[7] == 1 && remain_chess[6])
+		values[7] = 300;
+	else
+		values[7] = 1;
 	for(int i = 0; i < 32; i++){
 		if(!(board[i] == CHESS_EMPTY || board[i] == CHESS_COVER)){
 			if(board[i] / 7 == this->Color){
@@ -607,9 +623,10 @@ double MyAI::Evaluate(const int red_chess_num, const int black_chess_num, const 
 		}
 	}
 
+	//end game heuristic
 	if(score > 1943 ){
-		int bigcount = 0, big[2];
-		int smallcount, small;
+		int bigcount = 0, big[3];
+		int smallcount = 0, small;
 		if(this->Color == 1 && red_chess_num < 5){
 			for(int i=11; i>=6; i--){
 				for(int k=0; k<5; k++){
@@ -617,10 +634,10 @@ double MyAI::Evaluate(const int red_chess_num, const int black_chess_num, const 
 						big[bigcount] = chess_pos[i][k];
 						bigcount++;
 					}
-					if(bigcount >= 2)
+					if(bigcount >= 3)
 						break;
 				}
-				if(bigcount >= 2)
+				if(bigcount >= 3)
 					break;
 			}
 
@@ -636,8 +653,8 @@ double MyAI::Evaluate(const int red_chess_num, const int black_chess_num, const 
 				if(smallcount >= 1)
 					break;
 			}
-			if(bigcount >= 2 && smallcount >=1){
-				score -= 0.05*( (big[0]-small)/4 + (big[0]-small)%4 + (big[1]-small)/4 + (big[1]-small)%4 );
+			if(bigcount >= 3 && smallcount >=1){
+				score += 160-5.0*( abs((big[0]-small))/4 + abs((big[0]-small))%4 + abs((big[1]-small))/4 + abs((big[1]-small))%4 + abs((big[2]-small))/4 + abs((big[2]-small))%4 );
 			}
 	
 		}else if(this->Color == 0 && black_chess_num < 5){
@@ -647,10 +664,10 @@ double MyAI::Evaluate(const int red_chess_num, const int black_chess_num, const 
 						big[bigcount] = chess_pos[i][k];
 						bigcount++;
 					}
-					if(bigcount >= 2)
+					if(bigcount >= 3)
 						break;
 				}
-				if(bigcount >= 2)
+				if(bigcount >= 3)
 					break;
 			}
 
@@ -666,8 +683,8 @@ double MyAI::Evaluate(const int red_chess_num, const int black_chess_num, const 
 				if(smallcount >= 1)
 					break;
 			}
-			if(bigcount >= 2 && smallcount >=1){
-				score -= 0.05*( (big[0]-small)/4 + (big[0]-small)%4 + (big[1]-small)/4 + (big[1]-small)%4 );
+			if(bigcount >= 3 && smallcount >=1){
+				score += 160-5.0*( abs((big[0]-small))/4 + abs((big[0]-small))%4 + abs((big[1]-small))/4 + abs((big[1]-small))%4 + abs((big[2]-small))/4 + abs((big[2]-small))%4);
 			}
 		}
 	}
@@ -748,7 +765,7 @@ double MyAI::Nega_max(long long int key, double alpha, double beta, const int* b
 
 	hashvalue h, newh;
 	double m = -DBL_MAX;
-
+	// hash hit
 	if (this->table.find(key) != this->table.end()){
 		h = this->table.at(key);
 		if(h.depth >= remain_depth){
@@ -778,7 +795,6 @@ double MyAI::Nega_max(long long int key, double alpha, double beta, const int* b
 	
 	
 	static const int order[14] = {6,5,1,4,3,2,0,7,9,10,11,8,12,13};
-    // static const int black_order[7] = {13,12,8,11,10,9,7,};
 	int Result[1024];
 	// Moves[] = {move} U {flip}, Chess[] = {remain chess}
 	int Moves[2048], Chess[2048];
@@ -789,11 +805,10 @@ double MyAI::Nega_max(long long int key, double alpha, double beta, const int* b
 	// move
 	move_count = Expand(board, color, Result, chess_pos);
 	memcpy(Moves, Result, sizeof(int)*move_count);
-	// memcpy(alive_chess, cover_chess, sizeof(int)*14);
 
-	// flip
+	// move ordering for flip
 	if(color == RED)
-		for(int j = 0; j < 14; j++){ // find remain chess
+		for(int j = 0; j < 14; j++){ 
 			if(cover_chess[order[j]] > 0){
 				Chess[remain_count] = order[j];
 				remain_count++;
@@ -801,7 +816,7 @@ double MyAI::Nega_max(long long int key, double alpha, double beta, const int* b
 			}
 		}
 	else
-		for(int j = 13; j >= 0; j--){ // find remain chess
+		for(int j = 13; j >= 0; j--){ 
 			if(cover_chess[order[j]] > 0){
 				Chess[remain_count] = order[j];
 				remain_count++;
@@ -852,8 +867,6 @@ double MyAI::Nega_max(long long int key, double alpha, double beta, const int* b
 
 			
 			key = MakeMove(key, new_board, &new_red, &new_black, new_cover, new_remain, new_chess_pos, Moves[i], -1); // -1: NULL
-			// key ^= this->randnum[src][CHESS_COVER];
-			// key ^= this->randnum[src][chess];
 			t = -Nega_max(key^this->randnum[32][0], -n, -(alpha>m?alpha:m), new_board, &new_move, new_red, new_black, new_cover, new_remain, new_chess_pos, color^1, depth+1, remain_depth-1, flip_time);
 			key = tmp_key;
             if(t > m){ 
@@ -868,16 +881,10 @@ double MyAI::Nega_max(long long int key, double alpha, double beta, const int* b
                     key = MakeMove(key, new_board, &new_red, &new_black, new_cover, new_remain, new_chess_pos, Moves[i], -1); // -1: NULL
                     m = -Nega_max(key^this->randnum[32][0], -beta, -t, new_board, &new_move, new_red, new_black, new_cover, new_remain, new_chess_pos, color^1, depth+1, remain_depth-1, flip_time);
 					key = tmp_key;
-					
 					*move = Moves[i];
-                    // if(m < t)
-                    //     m = t;
                 }
 			}
-            // else if(t == m){
-			// 	bool r = rand()%2;
-			// 	if(r) *move = Moves[i];
-			// }
+
             if(depth == 0){
                 fprintf(stderr, "Move: %d, score: %f m: %f %d\n", Moves[i], t, m, new_move);
             }
@@ -908,9 +915,6 @@ double MyAI::Nega_max(long long int key, double alpha, double beta, const int* b
                 vmax = vmin;
                 vmin = tmp;
             }
-
-            // double m0 = vmin;
-            // double M0 = vmax;
         }
        
 
@@ -929,9 +933,6 @@ double MyAI::Nega_max(long long int key, double alpha, double beta, const int* b
 				memcpy(new_remain, remain_chess, sizeof(int)*14);
 				memcpy(new_chess_pos, chess_pos, sizeof(int)*70);
 				key = MakeMove(key, new_board, &new_red, &new_black, new_cover, new_remain, new_chess_pos, Moves[i], Chess[k]);
-                // if(remain_depth > 3)
-				//     t = -Nega_max(-(B>vmax?vmax:B), -(A>vmin?A:vmin), new_board, &new_move, new_red, new_black, new_cover, color^1, depth+1, 2);
-                // else 
 				t = -Nega_max(key^this->randnum[32][0], -(B>vmax?vmax:B), -(A>vmin?A:vmin), new_board, &new_move, new_red, new_black, new_cover, new_remain, new_chess_pos, color^1, depth+1, remain_depth-1, flip_time+1);
 				key = tmp_key;				
 				mm = mm + (t-vmin)/remain_total * cover_chess[Chess[k]];
@@ -951,8 +952,6 @@ double MyAI::Nega_max(long long int key, double alpha, double beta, const int* b
                     A =  ((double)cover_chess[Chess[k]]/cover_chess[Chess[k+1]]) * (A - t) + vmax;
                     B =  ((double)cover_chess[Chess[k]]/cover_chess[Chess[k+1]]) * (B - t) + vmin;
                 }
-                // A = A + (vmax - t) * cover_chess[Chess[k]];
-                // B = B + (vmin - t) * cover_chess[Chess[k]];
             }
             if(!flag)
                 sum /= remain_total;
@@ -960,10 +959,7 @@ double MyAI::Nega_max(long long int key, double alpha, double beta, const int* b
                 m = sum;
                 *move = Moves[i];
 			} 
-            // else if(sum == m){
-			// 	bool r = rand()%2;
-			// 	if(r) *move = Moves[i];
-			// }
+
             if(depth == 0){
                 fprintf(stderr, "Move: %d, score: %f m: %f\n", Moves[i], sum, m);
             }
